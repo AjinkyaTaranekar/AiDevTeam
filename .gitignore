@@ -1,0 +1,73 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+*.egg
+
+# Virtual environments
+venv/
+env/
+.env/
+.venv/
+ENV/
+
+# IDE-specific files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Logs and Databases
+*.log
+*.sqlite3
+design_reports/
+
+# Machine Learning and AI specific
+*.model
+*.pkl
+*.joblib
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Sensitive Information
+.env
+*.env
+secrets.py
+
+# Ollama and Model Specific
+*.ollama
+models/
+
+# Matplotlib and Visualization Caches
+*.pdf
+*.png
+*.jpg
+
+# Temporary files
+*.tmp
+*.bak
+*~
+.*.swp
+.*.swo
+
+# Python testing and coverage
+.coverage
+.pytest_cache/
+htmlcov/
+.tox/
+

@@ -1,0 +1,12 @@
+# Core Python Requirements
+matplotlib>=3.7.1
+termcolor>=2.3.0
+
+# Language Model and Langchain Dependencies
+langchain-core>=0.1.0
+langchain-community>=0.0.20
+ollama>=0.1.5
+
+# Optional but Recommended
+typing>=3.7.4
+matplotlib>=3.7.1
