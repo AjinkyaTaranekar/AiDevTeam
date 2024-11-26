@@ -2,9 +2,7 @@ import json
 import logging
 import os
 import uuid
-from typing import Any, Dict, List
 
-import matplotlib.pyplot as plt
 import networkx as nx
 from langchain_community.chat_models import ChatOllama
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
@@ -119,9 +117,10 @@ class CollaborativeAITeam:
         # Interactive problem solving
         solution_graph = nx.DiGraph()
         solution_graph.add_nodes_from(self.ROLES.keys())
+        collaborative_solutions = {}
 
         # Iterative collaborative solution generation
-        for round in range(3):  # Multiple collaboration rounds
+        for round in range(1):  # Multiple collaboration rounds
             logging.info(
                 colored(f"\n🔄 Collaboration Round {round + 1}", "cyan", attrs=["bold"])
             )
@@ -129,12 +128,28 @@ class CollaborativeAITeam:
             for source_role in self.ROLES:
                 for target_role in self.ROLES:
                     if source_role != target_role:
+                        previous_collab = {}
+                        if round:
+                            previous_collab = collaborative_solutions[
+                                f"Round {round}: {source_role} -> {target_role}"
+                            ]
                         collaborative_solution = self._cross_role_collaboration(
                             source_role,
                             target_role,
                             problem_statement,
                             initial_perspectives,
+                            previous_collab,
                         )
+
+                        # Store solutions for final synthesis
+                        collaborative_solutions[
+                            f"Round {round+1}: {source_role} -> {target_role}"
+                        ] = {
+                            "solution": collaborative_solution["solution"],
+                            "collaboration_score": collaborative_solution[
+                                "collaboration_score"
+                            ],
+                        }
 
                         # Add directed edge representing collaboration
                         solution_graph.add_edge(
@@ -143,11 +158,10 @@ class CollaborativeAITeam:
                             weight=collaborative_solution["collaboration_score"],
                         )
 
-        # Visualize solution collaboration
-        self._visualize_solution_graph(solution_graph)
-
         # Final synthesized solution
-        self._synthesize_final_solution(solution_graph)
+        self._synthesize_final_solution(
+            solution_graph, collaborative_solutions, problem_statement
+        )
 
     def _generate_initial_perspectives(self, problem_statement):
         """
@@ -167,7 +181,9 @@ class CollaborativeAITeam:
             chain = perspective_prompt | self.model
             response = chain.invoke({})
 
-            logging.info(colored(f"{role}'s Initial Perspective:", role_config["color"]))
+            logging.info(
+                colored(f"{role}'s Initial Perspective:", role_config["color"])
+            )
             logging.info(colored(response.content, role_config["color"]))
             logging.info("-" * 50)
 
@@ -176,7 +192,12 @@ class CollaborativeAITeam:
         return perspectives
 
     def _cross_role_collaboration(
-        self, source_role, target_role, problem_statement, initial_perspectives
+        self,
+        source_role,
+        target_role,
+        problem_statement,
+        initial_perspectives,
+        previous_collaboration,
     ):
         """
         Generate collaborative insights between two roles
@@ -197,11 +218,14 @@ class CollaborativeAITeam:
             
             {source_role}'s Perspective: {initial_perspectives[source_role]}
             {target_role}'s Perspective: {initial_perspectives[target_role]}
+
+            {f'Previous Collaboration (Score={previous_collaboration["collaboration_score"]}): {previous_collaboration["solution"]}' if "solution" in previous_collaboration else "Previous Collaboration: No"}
             
             Develop a collaborative solution that:
             1. Integrates insights from both perspectives
             2. Addresses potential blind spots
             3. Creates a more comprehensive approach
+            4. If there exists a previous collaboration, discuss more points that were missed or could be now improved.
             """
                 ),
             ]
@@ -220,42 +244,43 @@ class CollaborativeAITeam:
             * self.ROLES[target_role]["collaboration_weight"],
         }
 
-    def _visualize_solution_graph(self, solution_graph):
-        """
-        Visualize the solution collaboration graph
-        """
-        plt.figure(figsize=(12, 10))
-        pos = nx.spring_layout(solution_graph, k=0.9)
-
-        # Draw nodes
-        node_colors = [self.ROLES[node]["color"] for node in solution_graph.nodes()]
-        nx.draw_networkx_nodes(
-            solution_graph, pos, node_color=node_colors, node_size=700, alpha=0.8
-        )
-
-        # Draw edges with weight-based thickness
-        edge_weights = [
-            solution_graph[u][v]["weight"] * 3 for u, v in solution_graph.edges()
-        ]
-        nx.draw_networkx_edges(
-            solution_graph, pos, width=edge_weights, alpha=0.5, edge_color="gray"
-        )
-
-        # Add labels
-        nx.draw_networkx_labels(solution_graph, pos, font_weight="bold")
-
-        plt.title("Solution Collaboration Network", fontsize=16)
-        plt.axis("off")
-        plt.tight_layout()
-        plt.show()
-
     def _synthesize_final_solution(
         self, solution_graph, collaborative_solutions, problem_statement
     ):
         """
         Synthesize final solution from collaborative graph,
-        generating detailed High-Level and Low-Level Design
+        generating detailed High-Level and Low-Level Design (HLD, LLD)
         """
+        # Extract key insights from the solution graph
+        graph_insights = {
+            "most_influential_roles": sorted(
+                solution_graph.degree(weight="weight"), key=lambda x: x[1], reverse=True
+            ),
+            "critical_collaborations": sorted(
+                solution_graph.edges(data=True),
+                key=lambda x: x[2]["weight"],
+                reverse=True,
+            ),
+        }
+        logging.info(
+            colored(
+                "\n🔍 Graph Insights for Design Prioritization:", "cyan", attrs=["bold"]
+            )
+        )
+        logging.info(
+            colored(
+                f"Most Influential Roles: {graph_insights['most_influential_roles']}",
+                "white",
+            )
+        )
+        logging.info(
+            colored(
+                f"Critical Collaborations: {graph_insights['critical_collaborations']}",
+                "white",
+            )
+        )
+
+        # Generate HLD and LLD with detailed prompts
         synthesis_prompt = ChatPromptTemplate.from_messages(
             [
                 SystemMessage(

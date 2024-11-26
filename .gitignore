@@ -28,7 +28,6 @@ ENV/
 # Logs and Databases
 *.log
 *.sqlite3
-design_reports/
 
 # Machine Learning and AI specific
 *.model

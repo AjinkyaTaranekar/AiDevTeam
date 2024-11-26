@@ -27,8 +27,6 @@ AIDevTeam is an innovative Python-based collaborative problem-solving framework 
 - Python 3.8+
 - Dependencies:
   - langchain
-  - networkx
-  - matplotlib
   - termcolor
   - ollama (for language model)
 
