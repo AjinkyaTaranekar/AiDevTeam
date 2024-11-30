@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html class="dark">
+<head>
+    <title>AI Team Discussion</title>
+    <!-- Fix typography CSS link -->
+    <link rel="stylesheet" href="https://unpkg.com/@tailwindcss/typography@0.5.9/dist/typography.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --border-color: #2d3748;
+            --accent-color: #3b82f6;
+            --accent-hover: #2563eb;
+            --success-color: #059669;
+            --error-color: #dc2626;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        #chat-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+            padding: 24px;
+        }
+
+        #messages {
+            height: 600px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            padding: 16px;
+            margin-bottom: 24px;
+            border-radius: 8px;
+            background: var(--bg-primary);
+        }
+
+        .message {
+            margin: 16px 0;
+            padding: 16px;
+            border-radius: 12px;
+            background: var(--bg-secondary);
+            border-left: 4px solid transparent;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .message .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .role {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 1.1em;
+        }
+
+        .timestamp {
+            font-size: 0.875rem;
+            color: var (--text-secondary);
+        }
+
+        .content {
+            line-height: 1.6;
+            color: var(--text-primary);
+        }
+
+        .status {
+            text-align: center;
+            color: var(--text-secondary);
+            font-style: italic;
+            padding: 12px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            margin: 12px 0;
+        }
+
+        #problem-form {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        #problem-input {
+            flex-grow: 1;
+            padding: 12px 16px;
+            background: var(--bg-primary);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+
+        .input-container {
+            position: relative;
+            margin-top: 20px;
+            display: none;
+        }
+
+        #user-input {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--bg-primary);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            resize: vertical;
+            min-height: 60px;
+            font-family: inherit;
+            font-size: 1rem;
+        }
+
+        #user-input:focus, #problem-input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .button-container {
+            display: flex;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        button {
+            padding: 12px 24px;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+            font-size: 1rem;
+        }
+
+        button:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        .documentation {
+            padding: 24px;
+            background: var(--bg-primary);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            margin-top: 20px;
+        }
+
+        /* Dark mode adjustments for markdown content */
+        .prose {
+            max-width: none !important;
+            color: var(--text-primary) !important;
+        }
+
+        .prose h1, .prose h2, .prose h3, .prose h4 {
+            color: var(--text-primary) !important;
+        }
+
+        .prose strong {
+            color: var(--text-primary) !important;
+        }
+
+        .prose a {
+            color: var(--accent-color) !important;
+        }
+
+        .prose pre {
+            background: var(--bg-primary) !important;
+            border: 1px solid var(--border-color);
+        }
+
+        .prose code {
+            background: var(--bg-primary) !important;
+            color: var(--text-primary) !important;
+        }
+
+        .prose blockquote {
+            border-left-color: var(--accent-color) !important;
+            color: var(--text-secondary) !important;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Role badges */
+        .role-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .role-badge::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .error-message {
+            background: var(--error-color);
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 12px 0;
+            animation: fadeIn 0.3s ease-in;
+        }
+    </style>
+</head>
+<body>
+    <div id="chat-container">
+        <h1 class="text-2xl font-bold mb-6">AI Team Discussion</h1>
+        <div id="messages" class="prose"></div>
+        <form id="problem-form">
+            <input type="text" id="problem-input" placeholder="Enter your problem statement or design challenge here..." required>
+            <button type="submit">Start Discussion</button>
+        </form>
+        <div class="input-container">
+            <textarea id="user-input" 
+                     placeholder="Share your thoughts, ask questions, or challenge assumptions..."
+                     rows="3"></textarea>
+            <div class="button-container">
+                <button id="contribute-btn">Contribute to Discussion</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const messagesDiv = document.getElementById('messages');
+        const problemForm = document.getElementById('problem-form');
+        const problemInput = document.getElementById('problem-input');
+        const inputContainer = document.querySelector('.input-container');
+        const userInput = document.getElementById('user-input');
+        const contributeBtn = document.getElementById('contribute-btn');
+        let ws;
+
+        // Configure marked.js
+        marked.setOptions({
+            highlight: function(code, lang) {
+                if (lang && hljs.getLanguage(lang)) {
+                    return hljs.highlight(code, { language: lang }).value;
+                }
+                return hljs.highlightAuto(code).value;
+            },
+            breaks: true,
+            gfm: true
+        });
+
+        function connectWebSocket() {
+            ws = new WebSocket(`ws://${window.location.host}/ws/discuss`);
+            
+            ws.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                const messageDiv = document.createElement('div');
+                
+                if (data.type === 'message') {
+                    messageDiv.className = 'message';
+                    messageDiv.style.backgroundColor = `rgba(${getColorRGB(data.color)}, 0.05)`;
+                    messageDiv.style.borderLeft = `4px solid rgba(${getColorRGB(data.color)}, 0.5)`;
+                    
+                    const timestamp = new Date().toLocaleTimeString();
+                    messageDiv.innerHTML = `
+                        <div class="header">
+                            <span class="role">${data.role}</span>
+                            <span class="timestamp">${timestamp}</span>
+                        </div>
+                        <div class="content prose">${marked.parse(data.content)}</div>
+                    `;
+                } else if (data.type === 'status') {
+                    messageDiv.className = 'status';
+                    messageDiv.textContent = data.content;
+                } else if (data.type === 'documentation') {
+                    messageDiv.className = 'documentation prose';
+                    messageDiv.innerHTML = marked.parse(data.content);
+                }
+                
+                messagesDiv.appendChild(messageDiv);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                hljs.highlightAll();
+            };
+
+            ws.onclose = function() {
+                setTimeout(connectWebSocket, 1000);
+            };
+        }
+
+        function getColorRGB(color) {
+            const colors = {
+                'cyan': '34, 211, 238',
+                'green': '34, 197, 94',
+                'red': '239, 68, 68',
+                'yellow': '234, 179, 8',
+                'magenta': '236, 72, 153'
+            };
+            return colors[color] || '100, 116, 139';
+        }
+
+        function startNewDiscussion() {
+            const problem = problemInput.value.trim();
+            if (problem) {
+                ws.send(JSON.stringify({
+                    type: 'problem_statement',
+                    content: problem
+                }));
+                messagesDiv.innerHTML = '';
+                problemInput.value = '';
+                problemForm.style.display = 'none';
+                inputContainer.style.display = 'block'; // Show input container
+            }
+        }
+
+        function contributeToDiscussion() {
+            const contribution = userInput.value.trim();
+            if (contribution) {
+                ws.send(JSON.stringify({
+                    type: 'user_contribution',
+                    content: contribution
+                }));
+                userInput.value = '';
+
+                // Display user's contribution in the chat
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message';
+                messageDiv.style.backgroundColor = 'rgba(59, 130, 246, 0.05)';
+                messageDiv.style.borderLeft = '4px solid rgba(59, 130, 246, 0.5)';
+                const timestamp = new Date().toLocaleTimeString();
+                messageDiv.innerHTML = `
+                    <div class="header">
+                        <span class="role">You</span>
+                        <span class="timestamp">${timestamp}</span>
+                    </div>
+                    <div class="content prose">${marked.parse(contribution)}</div>
+                `;
+                messagesDiv.appendChild(messageDiv);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }
+        }
+
+        problemForm.onsubmit = function(e) {
+            e.preventDefault();
+            startNewDiscussion();
+        };
+
+        contributeBtn.onclick = contributeToDiscussion;
+        userInput.onkeydown = function(e) {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                contributeToDiscussion();
+            }
+        };
+
+        connectWebSocket();
+    </script>
+</body>
+</html>
