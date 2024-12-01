@@ -3,10 +3,12 @@ import json
 import logging
 import os
 import uuid
+import random
+import re
 from asyncio import TimeoutError
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Dict, List
+from typing import Dict, List, Set
 
 import networkx as nx
 import uvicorn
@@ -35,6 +37,51 @@ class Discussion:
     topic: str
     messages: List[Dict]
     consensus_reached: bool = False
+
+
+@dataclass
+class RoleTracker:
+    participated_roles: set
+    pending_roles: set
+    last_contribution: str = None
+    user_contributions: List[Dict] = None
+    recent_contributions: Dict[str, List[str]] = field(default_factory=lambda: {})
+    contribution_timestamps: Dict[str, datetime] = field(default_factory=dict)
+    
+    def __init__(self, all_roles):
+        self.participated_roles = set()
+        self.pending_roles = set(all_roles)
+        self.user_contributions = []
+
+    def can_contribute_again(self, role: str, new_contribution: str) -> bool:
+        if role not in self.recent_contributions:
+            self.recent_contributions[role] = []
+            return True
+            
+        # Check for similar content using basic similarity
+        for recent in self.recent_contributions[role][-3:]:  # Last 3 contributions
+            if self._is_similar_contribution(recent, new_contribution):
+                return False
+        
+        # Allow contribution if enough time has passed
+        last_time = self.contribution_timestamps.get(role)
+        if last_time and (datetime.now() - last_time).seconds < 60:  # 1 minute cooldown
+            return False
+            
+        return True
+    
+    def add_contribution(self, role: str, contribution: str):
+        if role not in self.recent_contributions:
+            self.recent_contributions[role] = []
+        self.recent_contributions[role].append(contribution)
+        self.contribution_timestamps[role] = datetime.now()
+    
+    def _is_similar_contribution(self, a: str, b: str) -> bool:
+        # Simple similarity check - can be enhanced with more sophisticated methods
+        a_words = set(a.lower().split())
+        b_words = set(b.lower().split())
+        similarity = len(a_words & b_words) / len(a_words | b_words)
+        return similarity > 0.7
 
 
 app = FastAPI()
@@ -262,6 +309,7 @@ class CollaborativeAITeam:
                 {"role": "Technical Product Manager", "content": pm_breakdown}
             )
 
+            role_tracker = RoleTracker(self.ROLES.keys())
             message_count = 0
             while not await self._has_reached_consensus_async(current_thread):
                 message_count += 1
@@ -269,7 +317,15 @@ class CollaborativeAITeam:
                 # Add delay between messages to prevent overwhelming the frontend
                 await asyncio.sleep(1)
 
-                next_role = await self._determine_next_contributor_async(current_thread)
+                # First handle any pending user contributions
+                if role_tracker.user_contributions:
+                    contribution = role_tracker.user_contributions.pop(0)
+                    relevant_role = self._determine_responder(contribution["content"], current_thread)
+                    await self._handle_pending_contribution(websocket, contribution, relevant_role, current_thread)
+                    continue
+
+                # Then ensure all roles participate
+                next_role = await self._determine_next_contributor_async(current_thread, role_tracker)
                 contribution = await self._get_role_contribution_async(
                     next_role, problem_statement, current_thread
                 )
@@ -278,6 +334,9 @@ class CollaborativeAITeam:
                 current_thread.messages.append(
                     {"role": next_role, "content": contribution}
                 )
+
+                role_tracker.participated_roles.add(next_role)
+                role_tracker.pending_roles.remove(next_role)
 
                 if message_count % 3 == 0:
                     await asyncio.sleep(
@@ -317,34 +376,39 @@ class CollaborativeAITeam:
     async def handle_user_contribution(
         self, contribution: str, websocket: WebSocket, current_thread: Discussion
     ):
-        """Handle user contribution to the discussion"""
-        await websocket.send_json(
-            {
-                "type": "message",
-                "role": "Team Member",
-                "content": contribution,
-                "color": "blue",
-            }
-        )
-
+        """Enhanced user contribution handling"""
+        # Add user contribution with high priority
+        if not hasattr(current_thread, 'role_tracker'):
+            current_thread.role_tracker = RoleTracker(self.ROLES.keys())
+        
+        # Get immediate responses from relevant roles
+        relevant_roles = self._identify_relevant_roles(contribution, current_thread)
+        
+        responses = []
+        for role, score in relevant_roles[:2]:  # Get top 2 most relevant roles
+            response = await self._get_role_response_async(role, contribution, current_thread)
+            if response and not self._is_redundant_response(response, responses):
+                responses.append({
+                    "role": role,
+                    "content": response
+                })
+        
+        # Send user contribution and responses
+        await self._send_message(websocket, "Team Member", contribution, "blue")
+        for response in responses:
+            await self._send_message(
+                websocket, 
+                response["role"], 
+                response["content"], 
+                self.ROLES[response["role"]]["color"]
+            )
+        
+        # Update thread with all messages
         current_thread.messages.append({"role": "Team Member", "content": contribution})
+        for response in responses:
+            current_thread.messages.append(response)
 
-        # Get reaction from most relevant role
-        relevant_role = self._determine_responder(contribution, current_thread)
-        response = self._get_role_response(relevant_role, contribution, current_thread)
-
-        await websocket.send_json(
-            {
-                "type": "message",
-                "role": relevant_role,
-                "content": response,
-                "color": self.ROLES[relevant_role]["color"],
-            }
-        )
-
-        current_thread.messages.append({"role": relevant_role, "content": response})
-
-    async def _send_message(self, websocket: WebSocket, role: str, content: str):
+    async def _send_message(self, websocket: WebSocket, role: str, content: str, color: str = None):
         """Helper method to send messages with proper formatting"""
         try:
             await websocket.send_json(
@@ -352,7 +416,7 @@ class CollaborativeAITeam:
                     "type": "message",
                     "role": role,
                     "content": content,
-                    "color": (
+                    "color": color or (
                         self.ROLES[role]["color"] if role in self.ROLES else "blue"
                     ),
                 }
@@ -360,6 +424,15 @@ class CollaborativeAITeam:
         except Exception as e:
             logging.error(f"Error sending message: {e}")
             raise
+
+    async def _handle_pending_contribution(self, websocket: WebSocket, contribution: Dict, role: str, thread: Discussion):
+        """Handle pending user contributions"""
+        response = self._get_role_response(role, contribution["content"], thread)
+        
+        thread.messages.append(contribution)
+        thread.messages.append({"role": role, "content": response})
+        
+        await self._send_message(websocket, role, response)
 
     # Async versions of existing methods
     async def _get_pm_breakdown_async(self, problem_statement: str) -> str:
@@ -382,11 +455,50 @@ class CollaborativeAITeam:
             None, self._has_reached_consensus, thread
         )
 
-    async def _determine_next_contributor_async(self, thread: Discussion) -> str:
-        """Async version of _determine_next_contributor"""
-        return await asyncio.get_event_loop().run_in_executor(
-            None, self._determine_next_contributor, thread
-        )
+    async def _determine_next_contributor_async(self, thread: Discussion, role_tracker: RoleTracker) -> str:
+        """Determine next contributor with improved logic"""
+        # First check for user contributions
+        if role_tracker.user_contributions:
+            return self._determine_responder(role_tracker.user_contributions[0]["content"], thread)
+
+        # Get potential contribution from each role
+        potential_contributions = {}
+        for role in self.ROLES:
+            potential = await self._get_potential_contribution_async(role, thread)
+            if potential and not self._is_redundant_response(potential, thread.messages[-5:]):
+                potential_contributions[role] = potential
+
+        if not potential_contributions:
+            return list(self.ROLES.keys())[0]
+
+        # Choose role with most valuable contribution
+        chosen_role = max(potential_contributions.items(), 
+                         key=lambda x: self._assess_contribution_value(x[1], thread))[0]
+        return chosen_role
+
+    async def _get_potential_contribution_async(self, role: str, thread: Discussion) -> str:
+        """Get potential contribution from a role without committing it"""
+        prompt = ChatPromptTemplate.from_messages([
+            SystemMessage(content=self.ROLES[role]["prompt"]),
+            HumanMessage(content=f"""
+                Review the current discussion:
+                {self._format_discussion_history(thread)}
+                
+                Do you have any valuable insights or important points to add?
+                Consider:
+                1. New perspectives not yet discussed
+                2. Important concerns that need addressing
+                3. Critical aspects being overlooked
+                4. Innovative solutions or approaches
+                
+                If you have nothing substantial to add, respond with "PASS".
+                Otherwise, provide your contribution.
+            """)
+        ])
+        
+        chain = prompt | self.model
+        response = chain.invoke({})
+        return None if "PASS" in response.content.upper() else response.content
 
     async def _get_innovator_challenge_async(self, thread: Discussion) -> str:
         """Async version of _get_innovator_challenge"""
@@ -544,34 +656,30 @@ class CollaborativeAITeam:
         response = chain.invoke({})
         return response.content
 
-    def _determine_next_contributor(self, thread: Discussion) -> str:
-        """Intelligently determine next role to contribute based on context"""
-        context_prompt = ChatPromptTemplate.from_messages(
-            [
-                SystemMessage(
-                    content="""You are a Team Collaboration Expert.
-            Analyze the discussion context and determine which role should contribute next."""
-                ),
-                HumanMessage(
-                    content=f"""
-            Current Discussion History:
-            {self._format_discussion_history(thread)}
-            
-            Available Roles: {list(self.ROLES.keys())}
-            
-            Based on:
-            1. The current discussion topic and challenges
-            2. Missing perspectives in the current discussion
-            3. Natural flow of technical discussion
-            4. Areas needing more detailed input
-            
-            Which role should contribute next and why?
-            Return only the role name, no explanation.
-            """
-                ),
-            ]
-        )
-
+    def _determine_next_contributor(self, thread: Discussion, role_tracker: RoleTracker) -> str:
+        """Enhanced role selection ensuring all roles participate"""
+        # If there are pending roles, prioritize them
+        if role_tracker.pending_roles:
+            # Use collaboration weights to choose among pending roles
+            pending_roles = list(role_tracker.pending_roles)
+            weights = [self.ROLES[role]["collaboration_weight"] for role in pending_roles]
+            return random.choices(pending_roles, weights=weights, k=1)[0]
+        
+        # If all roles have participated, use the original selection logic
+        context_prompt = ChatPromptTemplate.from_messages([
+            SystemMessage(content="You are a Team Collaboration Expert."),
+            HumanMessage(content=f"""
+                Current Discussion History:
+                {self._format_discussion_history(thread)}
+                
+                Last speaking role: {role_tracker.last_contribution}
+                Already participated: {list(role_tracker.participated_roles)}
+                
+                Which role should contribute next to provide the most valuable insight?
+                Return only the role name.
+            """)
+        ])
+        
         chain = context_prompt | self.model
         next_role = chain.invoke({}).content.strip()
         return next_role if next_role in self.ROLES else list(self.ROLES.keys())[0]
@@ -765,6 +873,100 @@ class CollaborativeAITeam:
         chain = prompt | self.model
         response = chain.invoke({})
         return response.content
+
+    async def _get_role_response_async(
+        self, role: str, contribution: str, thread: Discussion
+    ) -> str:
+        """Async version of _get_role_response"""
+        return await asyncio.get_event_loop().run_in_executor(
+            None, self._get_role_response, role, contribution, thread
+        )
+
+    def _assess_contribution_value(self, contribution: str, thread: Discussion) -> float:
+        """Assess the value of a potential contribution"""
+        # Simple metric based on:
+        # 1. Uniqueness compared to existing discussion
+        # 2. Length and substance of contribution
+        # 3. Presence of specific technical terms or concepts
+        
+        existing_content = ' '.join([m['content'] for m in thread.messages])
+        uniqueness = 1 - self._calculate_similarity(contribution, existing_content)
+        
+        # More value to substantial but concise contributions
+        length_score = min(len(contribution.split()) / 100, 1.0)
+        
+        # Identify technical terms and concrete suggestions
+        technical_terms = len(re.findall(r'\b(implementation|architecture|system|design|solution)\b', 
+                                   contribution.lower())) / 10
+        
+        return (uniqueness * 0.5 + length_score * 0.3 + technical_terms * 0.2)
+
+    def _calculate_similarity(self, text1: str, text2: str) -> float:
+        """Calculate text similarity score"""
+        words1 = set(text1.lower().split())
+        words2 = set(text2.lower().split())
+        intersection = words1 & words2
+        union = words1 | words2
+        return len(intersection) / len(union) if union else 0
+
+    def _identify_relevant_roles(self, contribution: str, thread: Discussion) -> List[str]:
+        """Identify roles most relevant to the user's contribution"""
+        relevance_scores = {}
+        
+        for role, config in self.ROLES.items():
+            score = 0
+            # Match keywords from role's expertise
+            expertise_keywords = self._extract_keywords(config["prompt"])
+            contribution_words = set(contribution.lower().split())
+            keyword_matches = len(expertise_keywords & contribution_words)
+            score += keyword_matches * 2
+            
+            # Consider role's recent activity
+            if any(msg["role"] == role for msg in thread.messages[-3:]):
+                score += 1
+                
+            relevance_scores[role] = score
+        
+        # Sort roles by relevance score
+        return sorted(relevance_scores.items(), key=lambda x: x[1], reverse=True)
+
+    def _extract_keywords(self, prompt: str) -> Set[str]:
+        """Extract relevant keywords from role prompt"""
+        # Simple keyword extraction - could be enhanced with NLP
+        common_words = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for'}
+        words = set(prompt.lower().split())
+        return words - common_words
+
+    def _is_similar_contribution(self, a: str, b: str) -> bool:
+        """Use LLM to check if contributions are too similar"""
+        prompt = ChatPromptTemplate.from_messages([
+            SystemMessage(content="You are a Content Similarity Analyzer"),
+            HumanMessage(content=f"""
+                Compare these two contributions and determine if they express substantially similar ideas:
+                
+                Contribution 1: {a}
+                Contribution 2: {b}
+                
+                Consider:
+                1. Core ideas and concepts
+                2. Specific suggestions or solutions
+                3. Technical approaches mentioned
+                4. Overall message intent
+                
+                Return only 'true' if very similar, 'false' if meaningfully different.
+            """)
+        ])
+        
+        chain = prompt | self.model
+        response = chain.invoke({})
+        return response.content.strip().lower() == 'true'
+
+    def _is_redundant_response(self, new_response: str, existing_responses: List[Dict]) -> bool:
+        """Check if a response is redundant with existing ones"""
+        for resp in existing_responses:
+            if self._is_similar_contribution(new_response, resp['content']):
+                return True
+        return False
 
 
 # Initialize AI team
