@@ -2,266 +2,221 @@
 <html class="dark">
 <head>
     <title>AI Team Discussion</title>
-    <!-- Fix typography CSS link -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/@tailwindcss/typography@0.5.9/dist/typography.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    animation: {
+                        'fade-in': 'fadeIn 0.3s ease-in',
+                        'slide-up': 'slideUp 0.4s ease-out',
+                        'pulse-subtle': 'pulseSubtle 2s infinite'
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'translateY(10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' }
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(20px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' }
+                        },
+                        pulseSubtle: {
+                            '0%, 100%': { opacity: '1' },
+                            '50%': { opacity: '0.8' }
+                        }
+                    },
+                    gridTemplateColumns: {
+                        'chat': '1fr 400px',
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        :root {
-            --bg-primary: #0f172a;
-            --bg-secondary: #1e293b;
-            --text-primary: #e2e8f0;
-            --text-secondary: #94a3b8;
-            --border-color: #2d3748;
-            --accent-color: #3b82f6;
-            --accent-hover: #2563eb;
-            --success-color: #059669;
-            --error-color: #dc2626;
-        }
-
-        body {
-            font-family: 'Inter', system-ui, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            min-height: 100vh;
-        }
-
-        #chat-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: var(--bg-secondary);
-            border-radius: 16px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
-            padding: 24px;
-        }
-
-        #messages {
-            height: 600px;
-            overflow-y: auto;
-            border: 1px solid var(--border-color);
-            padding: 16px;
-            margin-bottom: 24px;
-            border-radius: 8px;
-            background: var(--bg-primary);
-        }
-
-        .message {
-            margin: 16px 0;
-            padding: 16px;
-            border-radius: 12px;
-            background: var(--bg-secondary);
-            border-left: 4px solid transparent;
-            animation: fadeIn 0.3s ease-in;
-        }
-
-        .message .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .role {
-            font-weight: 600;
-            color: var(--text-primary);
-            font-size: 1.1em;
-        }
-
-        .timestamp {
-            font-size: 0.875rem;
-            color: var (--text-secondary);
-        }
-
-        .content {
-            line-height: 1.6;
-            color: var(--text-primary);
-        }
-
-        .status {
-            text-align: center;
-            color: var(--text-secondary);
-            font-style: italic;
-            padding: 12px;
-            background: var(--bg-secondary);
-            border-radius: 8px;
-            margin: 12px 0;
-        }
-
-        #problem-form {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-
-        #problem-input {
-            flex-grow: 1;
-            padding: 12px 16px;
-            background: var(--bg-primary);
-            border: 2px solid var(--border-color);
-            border-radius: 8px;
-            color: var(--text-primary);
-            font-size: 1rem;
-        }
-
-        .input-container {
-            position: relative;
-            margin-top: 20px;
-            display: none;
-        }
-
-        #user-input {
-            width: 100%;
-            padding: 12px 16px;
-            background: var(--bg-primary);
-            border: 2px solid var(--border-color);
-            border-radius: 8px;
-            color: var(--text-primary);
-            resize: vertical;
-            min-height: 60px;
-            font-family: inherit;
-            font-size: 1rem;
-        }
-
-        #user-input:focus, #problem-input:focus {
-            outline: none;
-            border-color: var(--accent-color);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        }
-
-        .button-container {
-            display: flex;
-            gap: 12px;
-            margin-top: 12px;
-        }
-
-        button {
-            padding: 12px 24px;
-            background: var(--accent-color);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.2s;
-            font-size: 1rem;
-        }
-
-        button:hover {
-            background: var(--accent-hover);
-            transform: translateY(-1px);
-        }
-
-        .documentation {
-            padding: 24px;
-            background: var(--bg-primary);
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-            margin-top: 20px;
-        }
-
-        /* Dark mode adjustments for markdown content */
-        .prose {
-            max-width: none !important;
-            color: var(--text-primary) !important;
-        }
-
-        .prose h1, .prose h2, .prose h3, .prose h4 {
-            color: var(--text-primary) !important;
-        }
-
-        .prose strong {
-            color: var(--text-primary) !important;
-        }
-
-        .prose a {
-            color: var(--accent-color) !important;
-        }
-
-        .prose pre {
-            background: var(--bg-primary) !important;
-            border: 1px solid var(--border-color);
-        }
-
-        .prose code {
-            background: var(--bg-primary) !important;
-            color: var(--text-primary) !important;
-        }
-
-        .prose blockquote {
-            border-left-color: var(--accent-color) !important;
-            color: var(--text-secondary) !important;
-        }
-
-        /* Custom scrollbar */
+        /* Only keep custom scrollbar styles */
         ::-webkit-scrollbar {
             width: 8px;
         }
 
         ::-webkit-scrollbar-track {
-            background: var(--bg-primary);
+            @apply bg-gray-900;
         }
 
         ::-webkit-scrollbar-thumb {
-            background: var(--border-color);
-            border-radius: 4px;
+            @apply bg-gray-700 rounded;
         }
 
         ::-webkit-scrollbar-thumb:hover {
-            background: var(--text-secondary);
+            @apply bg-gray-600;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+        /* Add gradient animations */
+        .gradient-border {
+            position: relative;
+            border-radius: 1rem;
         }
-
-        /* Role badges */
-        .role-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .role-badge::before {
+        .gradient-border::before {
             content: '';
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
+            position: absolute;
+            inset: -2px;
+            border-radius: inherit;
+            padding: 2px;
+            background: linear-gradient(
+                45deg,
+                rgb(59, 130, 246),
+                rgb(147, 51, 234),
+                rgb(236, 72, 153)
+            );
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            opacity: 0.5;
+            animation: border-glow 4s linear infinite;
+        }
+        @keyframes border-glow {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 0.8; }
         }
 
-        .error-message {
-            background: var(--error-color);
-            color: white;
-            padding: 12px;
-            border-radius: 8px;
-            margin: 12px 0;
-            animation: fadeIn 0.3s ease-in;
+        .list-fixer > :global(ul) {
+            list-style-type: disc;
+        }
+
+        .footer-gradient {
+            background: linear-gradient(45deg, #3b82f6, #8b5cf6, #ec4899);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: gradient-shift 8s ease infinite;
+        }
+
+        .footer-glow {
+            position: relative;
+            z-index: 1;
+        }
+
+        .footer-glow::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            z-index: -1;
+            border-radius: inherit;
+            padding: 2px;
+            background: linear-gradient(45deg, #3b82f6, #8b5cf6, #ec4899);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            opacity: 0.3;
+            animation: footer-glow 4s linear infinite;
+        }
+
+        @keyframes gradient-shift {
+            0%, 100% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+        }
+
+        @keyframes footer-glow {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.5; }
         }
     </style>
 </head>
-<body>
-    <div id="chat-container">
-        <h1 class="text-2xl font-bold mb-6">AI Team Discussion</h1>
-        <div id="messages" class="prose"></div>
-        <form id="problem-form">
-            <input type="text" id="problem-input" placeholder="Enter your problem statement or design challenge here..." required>
-            <button type="submit">Start Discussion</button>
+<body class="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-gray-100 min-h-screen p-5">
+    <div id="chat-container" class="max-w-[95vw] h-[85vh] mx-auto bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-xl p-6 gradient-border relative">
+        <!-- Header section -->
+        <div class="flex items-center justify-between mb-6 relative z-10">
+            <div class="flex items-center gap-3">
+                <svg class="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z"/>
+                </svg>
+                <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 text-transparent bg-clip-text">AI Team Discussion</h1>
+            </div>
+            <div class="flex gap-3">
+                <button id="export-pdf" type="button" class="px-4 py-2 bg-gray-700/50 hover:bg-gray-600/50 text-white rounded-lg font-medium transition-all hover:-translate-y-0.5 hover:shadow-lg flex items-center gap-2 z-10">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    Export PDF
+                </button>
+            </div>
+        </div>
+
+        <!-- Problem input form -->
+        <form id="problem-form" class="mb-5 relative z-10" onsubmit="startNewDiscussion(event)">
+            <div class="relative">
+                <div class="absolute inset-y-0 left-3 top-3 flex items-start pointer-events-none">
+                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <textarea 
+                    id="problem-input" 
+                    rows="3"
+                    class="w-full pl-10 p-3 bg-gray-900/50 backdrop-blur-sm border-2 border-gray-700/50 rounded-lg text-gray-100 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all placeholder-gray-400 resize-none"
+                    placeholder="Describe your problem statement or design challenge here..." 
+                    required></textarea>
+            </div>
+            <div class="flex justify-end mt-3">
+                <button type="submit" 
+                        class="relative z-10 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white rounded-lg font-medium transition-all hover:-translate-y-0.5 hover:shadow-lg flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                    Start Discussion
+                </button>
+            </div>
         </form>
-        <div class="input-container">
-            <textarea id="user-input" 
-                     placeholder="Share your thoughts, ask questions, or challenge assumptions..."
-                     rows="3"></textarea>
-            <div class="button-container">
-                <button id="contribute-btn">Contribute to Discussion</button>
+        
+        <!-- Chat grid container -->
+        <div class="input-container hidden h-[calc(100%-130px)] relative z-10">
+            <div class="grid grid-cols-chat gap-6 h-full">
+                <!-- Main Chat Area -->
+                <div id="messages" class="h-full overflow-y-auto border border-gray-700/50 p-4 rounded-xl bg-gray-900/50 backdrop-blur-sm prose prose-invert prose-pre:bg-gray-800/50 prose-pre:border prose-pre:border-gray-700/50 max-w-none"></div>
+                
+                <!-- Side Input Panel -->
+                <div class="h-full flex flex-col backdrop-blur-sm">
+                    <textarea id="user-input" 
+                              class="flex-grow p-3 bg-gray-900/50 border-2 border-gray-700/50 rounded-lg text-gray-100 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all resize-none placeholder-gray-400"
+                              placeholder="Share your thoughts, ask questions, or challenge assumptions... (Ctrl + Enter to send)"></textarea>
+                    <div class="mt-3">
+                        <button id="contribute-btn" 
+                                class="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white rounded-lg font-medium transition-all hover:-translate-y-0.5 hover:shadow-lg flex items-center justify-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                            </svg>
+                            Contribute to Discussion
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
+
+    <footer class="mt-6 text-center">
+        <div class="footer-glow inline-block px-6 py-3 rounded-xl bg-gray-800/50 backdrop-blur-sm">
+            <p class="footer-gradient text-lg font-bold">
+                🚀 Built by Devs, For Devs 🛠️
+            </p>
+            <p class="text-sm text-gray-400 mt-1">
+                Where AI meets Human Creativity ✨
+                <span class="mx-2">|</span>
+                Made with 💻 & ❤️
+                <span class="mx-2">|</span>
+                Powered by ☕️ & 🎧
+            </p>
+        </div>
+    </footer>
 
     <script>
         const messagesDiv = document.getElementById('messages');
@@ -289,32 +244,12 @@
             
             ws.onmessage = function(event) {
                 const data = JSON.parse(event.data);
-                const messageDiv = document.createElement('div');
-                
-                if (data.type === 'message') {
-                    messageDiv.className = 'message';
-                    messageDiv.style.backgroundColor = `rgba(${getColorRGB(data.color)}, 0.05)`;
-                    messageDiv.style.borderLeft = `4px solid rgba(${getColorRGB(data.color)}, 0.5)`;
-                    
-                    const timestamp = new Date().toLocaleTimeString();
-                    messageDiv.innerHTML = `
-                        <div class="header">
-                            <span class="role">${data.role}</span>
-                            <span class="timestamp">${timestamp}</span>
-                        </div>
-                        <div class="content prose">${marked.parse(data.content)}</div>
-                    `;
-                } else if (data.type === 'status') {
-                    messageDiv.className = 'status';
-                    messageDiv.textContent = data.content;
-                } else if (data.type === 'documentation') {
-                    messageDiv.className = 'documentation prose';
-                    messageDiv.innerHTML = marked.parse(data.content);
-                }
-                
+                const messageDiv = createMessageElement(data);
                 messagesDiv.appendChild(messageDiv);
                 messagesDiv.scrollTop = messagesDiv.scrollHeight;
-                hljs.highlightAll();
+                if (messageDiv.querySelector('pre code')) {
+                    hljs.highlightAll();
+                }
             };
 
             ws.onclose = function() {
@@ -333,7 +268,8 @@
             return colors[color] || '100, 116, 139';
         }
 
-        function startNewDiscussion() {
+        function startNewDiscussion(e) {
+            e.preventDefault(); // Prevent form from submitting normally
             const problem = problemInput.value.trim();
             if (problem) {
                 ws.send(JSON.stringify({
@@ -343,7 +279,8 @@
                 messagesDiv.innerHTML = '';
                 problemInput.value = '';
                 problemForm.style.display = 'none';
-                inputContainer.style.display = 'block'; // Show input container
+                inputContainer.classList.remove('hidden');
+                inputContainer.classList.add('animate-slide-up');
             }
         }
 
@@ -357,27 +294,44 @@
                 userInput.value = '';
 
                 // Display user's contribution in the chat
-                const messageDiv = document.createElement('div');
-                messageDiv.className = 'message';
-                messageDiv.style.backgroundColor = 'rgba(59, 130, 246, 0.05)';
-                messageDiv.style.borderLeft = '4px solid rgba(59, 130, 246, 0.5)';
-                const timestamp = new Date().toLocaleTimeString();
-                messageDiv.innerHTML = `
-                    <div class="header">
-                        <span class="role">You</span>
-                        <span class="timestamp">${timestamp}</span>
-                    </div>
-                    <div class="content prose">${marked.parse(contribution)}</div>
-                `;
+                const messageDiv = createMessageElement({
+                    type: 'message',
+                    role: 'You',
+                    content: contribution,
+                    color: 'blue'
+                });
                 messagesDiv.appendChild(messageDiv);
                 messagesDiv.scrollTop = messagesDiv.scrollHeight;
             }
         }
 
-        problemForm.onsubmit = function(e) {
-            e.preventDefault();
-            startNewDiscussion();
-        };
+        function createMessageElement(data) {
+            const messageDiv = document.createElement('div');
+            
+            if (data.type === 'message') {
+                const bgColor = data.role === 'Team Member' ? 'bg-blue-900/20' : `bg-${data.color}-900/20`;
+                const borderColor = data.role === 'Team Member' ? 'border-blue-500/50' : `border-${data.color}-500/50`;
+                
+                messageDiv.className = `message ${bgColor} border-l-4 ${borderColor} rounded-xl p-4 my-4 animate-fade-in print:break-inside-avoid`;
+                
+                const timestamp = new Date().toLocaleTimeString();
+                messageDiv.innerHTML = `
+                    <div class="flex justify-between items-center mb-3 pb-2 border-b border-gray-700">
+                        <span class="font-semibold text-lg text-gray-100">${data.role}</span>
+                        <span class="text-sm text-gray-400">${timestamp}</span>
+                    </div>
+                    <div class="prose prose-invert max-w-none list-fixer">${marked.parse(data.content)}</div>
+                `;
+            } else if (data.type === 'status') {
+                messageDiv.className = 'text-center text-gray-400 italic py-3 px-4 bg-gray-800/50 rounded-lg my-3 animate-pulse-subtle print:text-gray-600';
+                messageDiv.textContent = data.content;
+            } else if (data.type === 'documentation') {
+                messageDiv.className = 'documentation prose prose-invert max-w-none p-6 bg-gray-900 rounded-xl border border-gray-700 mt-5 animate-slide-up print:prose-gray print:bg-white list-fixer';
+                messageDiv.innerHTML = marked.parse(data.content);
+            }
+            
+            return messageDiv;
+        }
 
         contributeBtn.onclick = contributeToDiscussion;
         userInput.onkeydown = function(e) {
@@ -387,6 +341,28 @@
         };
 
         connectWebSocket();
+
+        // Add PDF export functionality
+        document.getElementById('export-pdf').addEventListener('click', function() {
+            // Create a clone of messages div for PDF
+            const pdfContent = document.createElement('div');
+            pdfContent.innerHTML = messagesDiv.innerHTML;
+            
+            // Add some styling for PDF
+            pdfContent.classList.add('bg-black', 'p-8');
+            
+            // Configure PDF options
+            const opt = {
+                margin: 1,
+                filename: 'ai-team-discussion.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+            };
+
+            // Generate PDF
+            html2pdf().set(opt).from(pdfContent).save();
+        });
     </script>
 </body>
 </html>
