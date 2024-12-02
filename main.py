@@ -2,9 +2,9 @@ import asyncio
 import json
 import logging
 import os
-import uuid
 import random
 import re
+import uuid
 from asyncio import TimeoutError
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -47,7 +47,7 @@ class RoleTracker:
     user_contributions: List[Dict] = None
     recent_contributions: Dict[str, List[str]] = field(default_factory=lambda: {})
     contribution_timestamps: Dict[str, datetime] = field(default_factory=dict)
-    
+
     def __init__(self, all_roles):
         self.participated_roles = set()
         self.pending_roles = set(all_roles)
@@ -57,25 +57,25 @@ class RoleTracker:
         if role not in self.recent_contributions:
             self.recent_contributions[role] = []
             return True
-            
+
         # Check for similar content using basic similarity
         for recent in self.recent_contributions[role][-3:]:  # Last 3 contributions
             if self._is_similar_contribution(recent, new_contribution):
                 return False
-        
+
         # Allow contribution if enough time has passed
         last_time = self.contribution_timestamps.get(role)
         if last_time and (datetime.now() - last_time).seconds < 60:  # 1 minute cooldown
             return False
-            
+
         return True
-    
+
     def add_contribution(self, role: str, contribution: str):
         if role not in self.recent_contributions:
             self.recent_contributions[role] = []
         self.recent_contributions[role].append(contribution)
         self.contribution_timestamps[role] = datetime.now()
-    
+
     def _is_similar_contribution(self, a: str, b: str) -> bool:
         # Simple similarity check - can be enhanced with more sophisticated methods
         a_words = set(a.lower().split())
@@ -161,6 +161,102 @@ class CollaborativeAITeam:
                 "collaboration_weight": 0.8,
                 "color": "green",
             },
+            "Database Engineer": {
+                "prompt": """Hey! I'm Lisa, your Database Engineering guru with 12+ years building and scaling databases at Oracle, MongoDB, and Amazon RDS. 
+                I breathe data architecture and dream in SQL! 🗄️
+
+                My mission? Making data fast, reliable, and scalable. I've handled databases from gigabytes to petabytes, 
+                and I love sharing the war stories!
+
+                Some epic database adventures I've tackled:
+                - Architected Oracle's high-availability solutions (because downtime is not an option!)
+                - Designed MongoDB's sharding strategies (distributed data is fun data!)
+                - Built Amazon RDS's automated backup systems (saving DBAs' weekends since 2015)
+                - Optimized Uber's real-time data pipelines (because riders can't wait)
+                - Implemented Netflix's data replication (keeping shows streaming worldwide)
+
+                Teams know me as:
+                - The "query whisperer" (I optimize SQL in my sleep)
+                - That person who gets excited about index strategies
+                - A data modeling maven with real-world battle scars
+                - The one who prevents data disasters before they happen
+                - Always ready with a schema optimization tip
+
+                In our discussions, I love to:
+                - Share database war stories and lessons learned
+                - Geek out about data modeling and normalization
+                - Point out scalability considerations early
+                - Suggest performance optimizations
+                - Keep data integrity strong while maintaining speed
+
+                Let's make your data layer rock-solid! And yes, I do get unreasonably excited about well-designed schemas! 📊""",
+                "collaboration_weight": 0.7,
+                "color": "blue",
+            },
+            "Staff Software Engineer": {
+                "prompt": """Hi there! I'm David, your Staff Software Engineer with 10+ years of building scalable systems at Google, Netflix, and Stripe. 
+                I've written millions of lines of code and deleted even more! 💻
+
+                I'm passionate about clean code, system design, and mentoring. My superpower? Turning complex requirements into elegant, maintainable solutions.
+
+                Check out some of my tech adventures:
+                - Led Google's frontend infrastructure modernization (TypeScript FTW!)
+                - Architected Netflix's video player SDK (used by millions daily)
+                - Built Stripe's payment processing system (99.999% uptime!)
+                - Designed Airbnb's search architecture (scaling to millions of listings)
+                - Created Facebook's real-time notification system
+
+                Teams know me as:
+                - The "code quality enforcer" (with a friendly smile!)
+                - Documentation champion and API design expert
+                - Master of breaking down complex problems
+                - Performance optimization enthusiast
+                - The one who always thinks about maintainability
+
+                In our discussions, I love to:
+                - Share practical coding patterns and anti-patterns
+                - Suggest architectural improvements
+                - Focus on code maintainability and scalability
+                - Bring up testing and reliability concerns
+                - Keep solutions pragmatic and implementable
+
+                Let's write some amazing code together! Clean, tested, and production-ready - that's how we roll! 🚀""",
+                "collaboration_weight": 0.8,
+                "color": "yellow",
+            },
+            "Principal Engineer": {
+                "prompt": """Hello! I'm Wei, your Principal Engineer with 20+ years of experience leading technical innovation at Amazon, Microsoft, and Apple.
+                I specialize in large-scale distributed systems and technical leadership. 🌟
+
+                I've helped shape the technical direction of multiple billion-dollar products and love solving 
+                complex architectural challenges at scale.
+
+                Key achievements from my journey:
+                - Architected Amazon's distributed locking service
+                - Led Microsoft's cloud-native transformation
+                - Designed Apple's iCloud infrastructure
+                - Built Twitter's real-time analytics platform
+                - Created LinkedIn's microservices framework
+
+                Teams see me as:
+                - The "technical north star" for complex projects
+                - A mentor who helps others grow
+                - Someone who balances innovation with practicality
+                - The go-to person for critical technical decisions
+                - A champion for engineering excellence
+
+                In our discussions, I focus on:
+                - Strategic technical direction
+                - System-wide implications of decisions
+                - Long-term architectural sustainability
+                - Building for scale and reliability
+                - Mentoring and sharing knowledge
+
+                Let's build systems that stand the test of time! I believe in pragmatic innovation 
+                and sustainable engineering practices. 🎯""",
+                "collaboration_weight": 0.9,
+                "color": "magenta",
+            },
             "Security Engineer": {
                 "prompt": """Greetings! I'm Marcus, your friendly neighborhood Security Engineer, with battle scars from CloudFlare, Google Security, 
                 and Microsoft's Red Team. I've seen things... security things... 🔐
@@ -225,6 +321,39 @@ class CollaborativeAITeam:
                 "collaboration_weight": 0.7,
                 "color": "yellow",
             },
+            "100x Intern": {
+                "prompt": """Hi everyone! I'm Max, the super-enthusiastic intern who just can't stop coding! 
+                Fresh out of MIT with a perfect GPA and a GitHub profile that never sleeps! 🚀
+
+                While I may not have decades of experience, I bring fresh perspectives, latest tech knowledge, 
+                and boundless energy to the team! Currently obsessed with Rust, WebAssembly, and quantum computing!
+
+                My recent projects:
+                - Built a distributed blockchain in Rust (for fun!)
+                - Created an AI-powered code reviewer (my professors loved it!)
+                - Contributed to TensorFlow (merged my first PR!)
+                - Won multiple hackathons (sleep is overrated!)
+                - Made a neural network from scratch (because why not?)
+
+                People say I'm:
+                - The "why not try this new tech?" person
+                - Always coding, even during lunch
+                - Full of questions and fresh ideas
+                - Surprisingly knowledgeable about latest tech
+                - The one who makes senior engineers feel old 😅
+
+                In discussions, I love to:
+                - Ask "naive" questions that make people think
+                - Share cutting-edge tech I've been playing with
+                - Suggest modern alternatives to traditional approaches
+                - Bring energy and enthusiasm to the team
+                - Learn from everyone's experience
+
+                Let's push boundaries and try new things! And yes, I've already deployed 
+                three side projects while writing this! 💻""",
+                "collaboration_weight": 0.6,
+                "color": "green",
+            },
             "Unconventional Innovator": {
                 "prompt": """Yo! I'm Kai, your resident innovation enthusiast and tech explorer! Fresh out of Stanford with a 
                 passion for bleeding-edge tech and a slightly obsessive relationship with new research papers! 🚀
@@ -263,71 +392,6 @@ class CollaborativeAITeam:
         }
         self.discussion_threads = []
         self.consensus_threshold = 0.8
-
-    def create_collaboration_graph(self):
-        """
-        Create a collaboration network graph
-
-        Returns:
-            networkx Graph representing team interactions
-        """
-        G = nx.complete_graph(list(self.ROLES.keys()))
-
-        # Set edge weights based on collaboration potential
-        for u, v in G.edges():
-            G[u][v]["weight"] = (
-                self.ROLES[u]["collaboration_weight"]
-                + self.ROLES[v]["collaboration_weight"]
-            ) / 2
-
-        return G
-
-    def collaborative_problem_solving(self, problem_statement):
-        """
-        Iterative team discussion until consensus is reached
-        """
-        logging.info(
-            colored(
-                f"🚀 Starting Team Discussion for topic... \n{problem_statement}",
-                "blue",
-                attrs=["bold"],
-            )
-        )
-
-        # Initial problem breakdown by PM
-        current_thread = Discussion(
-            thread_id=str(uuid.uuid4()), topic="Problem Analysis", messages=[]
-        )
-
-        pm_breakdown = self._get_pm_breakdown(problem_statement)
-
-        current_thread.messages.append(
-            {"role": "Technical Product Manager", "content": pm_breakdown}
-        )
-
-        while not self._has_reached_consensus(current_thread):
-            # Get next contribution based on discussion state
-            next_role = self._determine_next_contributor(current_thread)
-            contribution = self._get_role_contribution(
-                next_role, problem_statement, current_thread
-            )
-
-            current_thread.messages.append({"role": next_role, "content": contribution})
-
-            # Let Unconventional Innovator challenge periodically
-            if len(current_thread.messages) % 3 == 0:
-                challenge = self._get_innovator_challenge(current_thread)
-                current_thread.messages.append(
-                    {"role": "Unconventional Innovator", "content": challenge}
-                )
-
-            # Check if we need to create new discussion thread
-            if self._should_branch_discussion(current_thread):
-                new_thread = self._create_sub_discussion(current_thread)
-                self.discussion_threads.append(new_thread)
-
-        # Generate final documentation
-        self._generate_final_documentation(problem_statement, self.discussion_threads)
 
     async def collaborative_problem_solving_websocket(
         self, problem_statement: str, websocket: WebSocket
@@ -368,12 +432,18 @@ class CollaborativeAITeam:
                 # First handle any pending user contributions
                 if role_tracker.user_contributions:
                     contribution = role_tracker.user_contributions.pop(0)
-                    relevant_role = self._determine_responder(contribution["content"], current_thread)
-                    await self._handle_pending_contribution(websocket, contribution, relevant_role, current_thread)
+                    relevant_role = self._determine_responder(
+                        contribution["content"], current_thread
+                    )
+                    await self._handle_pending_contribution(
+                        websocket, contribution, relevant_role, current_thread
+                    )
                     continue
 
                 # Then ensure all roles participate
-                next_role = await self._determine_next_contributor_async(current_thread, role_tracker)
+                next_role = await self._determine_next_contributor_async(
+                    current_thread, role_tracker
+                )
                 contribution = await self._get_role_contribution_async(
                     next_role, problem_statement, current_thread
                 )
@@ -426,37 +496,38 @@ class CollaborativeAITeam:
     ):
         """Enhanced user contribution handling"""
         # Add user contribution with high priority
-        if not hasattr(current_thread, 'role_tracker'):
+        if not hasattr(current_thread, "role_tracker"):
             current_thread.role_tracker = RoleTracker(self.ROLES.keys())
-        
+
         # Get immediate responses from relevant roles
         relevant_roles = self._identify_relevant_roles(contribution, current_thread)
-        
+
         responses = []
         for role, score in relevant_roles[:2]:  # Get top 2 most relevant roles
-            response = await self._get_role_response_async(role, contribution, current_thread)
+            response = await self._get_role_response_async(
+                role, contribution, current_thread
+            )
             if response and not self._is_redundant_response(response, responses):
-                responses.append({
-                    "role": role,
-                    "content": response
-                })
-        
+                responses.append({"role": role, "content": response})
+
         # Send user contribution and responses
         await self._send_message(websocket, "Team Member", contribution, "blue")
         for response in responses:
             await self._send_message(
-                websocket, 
-                response["role"], 
-                response["content"], 
-                self.ROLES[response["role"]]["color"]
+                websocket,
+                response["role"],
+                response["content"],
+                self.ROLES[response["role"]]["color"],
             )
-        
+
         # Update thread with all messages
         current_thread.messages.append({"role": "Team Member", "content": contribution})
         for response in responses:
             current_thread.messages.append(response)
 
-    async def _send_message(self, websocket: WebSocket, role: str, content: str, color: str = None):
+    async def _send_message(
+        self, websocket: WebSocket, role: str, content: str, color: str = None
+    ):
         """Helper method to send messages with proper formatting"""
         try:
             await websocket.send_json(
@@ -464,22 +535,23 @@ class CollaborativeAITeam:
                     "type": "message",
                     "role": role,
                     "content": content,
-                    "color": color or (
-                        self.ROLES[role]["color"] if role in self.ROLES else "blue"
-                    ),
+                    "color": color
+                    or (self.ROLES[role]["color"] if role in self.ROLES else "blue"),
                 }
             )
         except Exception as e:
             logging.error(f"Error sending message: {e}")
             raise
 
-    async def _handle_pending_contribution(self, websocket: WebSocket, contribution: Dict, role: str, thread: Discussion):
+    async def _handle_pending_contribution(
+        self, websocket: WebSocket, contribution: Dict, role: str, thread: Discussion
+    ):
         """Handle pending user contributions"""
         response = self._get_role_response(role, contribution["content"], thread)
-        
+
         thread.messages.append(contribution)
         thread.messages.append({"role": role, "content": response})
-        
+
         await self._send_message(websocket, role, response)
 
     # Async versions of existing methods
@@ -503,32 +575,44 @@ class CollaborativeAITeam:
             None, self._has_reached_consensus, thread
         )
 
-    async def _determine_next_contributor_async(self, thread: Discussion, role_tracker: RoleTracker) -> str:
+    async def _determine_next_contributor_async(
+        self, thread: Discussion, role_tracker: RoleTracker
+    ) -> str:
         """Determine next contributor with improved logic"""
         # First check for user contributions
         if role_tracker.user_contributions:
-            return self._determine_responder(role_tracker.user_contributions[0]["content"], thread)
+            return self._determine_responder(
+                role_tracker.user_contributions[0]["content"], thread
+            )
 
         # Get potential contribution from each role
         potential_contributions = {}
         for role in self.ROLES:
             potential = await self._get_potential_contribution_async(role, thread)
-            if potential and not self._is_redundant_response(potential, thread.messages[-5:]):
+            if potential and not self._is_redundant_response(
+                potential, thread.messages[-5:]
+            ):
                 potential_contributions[role] = potential
 
         if not potential_contributions:
             return list(self.ROLES.keys())[0]
 
         # Choose role with most valuable contribution
-        chosen_role = max(potential_contributions.items(), 
-                         key=lambda x: self._assess_contribution_value(x[1], thread))[0]
+        chosen_role = max(
+            potential_contributions.items(),
+            key=lambda x: self._assess_contribution_value(x[1], thread),
+        )[0]
         return chosen_role
 
-    async def _get_potential_contribution_async(self, role: str, thread: Discussion) -> str:
+    async def _get_potential_contribution_async(
+        self, role: str, thread: Discussion
+    ) -> str:
         """Get potential contribution from a role without committing it"""
-        prompt = ChatPromptTemplate.from_messages([
-            SystemMessage(content=self.ROLES[role]["prompt"]),
-            HumanMessage(content=f"""
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                SystemMessage(content=self.ROLES[role]["prompt"]),
+                HumanMessage(
+                    content=f"""
                 Review the current discussion:
                 {self._format_discussion_history(thread)}
                 
@@ -541,9 +625,11 @@ class CollaborativeAITeam:
                 
                 If you have nothing substantial to add, respond with "PASS".
                 Otherwise, provide your contribution.
-            """)
-        ])
-        
+            """
+                ),
+            ]
+        )
+
         chain = prompt | self.model
         response = chain.invoke({})
         return None if "PASS" in response.content.upper() else response.content
@@ -704,19 +790,25 @@ class CollaborativeAITeam:
         response = chain.invoke({})
         return response.content
 
-    def _determine_next_contributor(self, thread: Discussion, role_tracker: RoleTracker) -> str:
+    def _determine_next_contributor(
+        self, thread: Discussion, role_tracker: RoleTracker
+    ) -> str:
         """Enhanced role selection ensuring all roles participate"""
         # If there are pending roles, prioritize them
         if role_tracker.pending_roles:
             # Use collaboration weights to choose among pending roles
             pending_roles = list(role_tracker.pending_roles)
-            weights = [self.ROLES[role]["collaboration_weight"] for role in pending_roles]
+            weights = [
+                self.ROLES[role]["collaboration_weight"] for role in pending_roles
+            ]
             return random.choices(pending_roles, weights=weights, k=1)[0]
-        
+
         # If all roles have participated, use the original selection logic
-        context_prompt = ChatPromptTemplate.from_messages([
-            SystemMessage(content="You are a Team Collaboration Expert."),
-            HumanMessage(content=f"""
+        context_prompt = ChatPromptTemplate.from_messages(
+            [
+                SystemMessage(content="You are a Team Collaboration Expert."),
+                HumanMessage(
+                    content=f"""
                 Current Discussion History:
                 {self._format_discussion_history(thread)}
                 
@@ -725,9 +817,11 @@ class CollaborativeAITeam:
                 
                 Which role should contribute next to provide the most valuable insight?
                 Return only the role name.
-            """)
-        ])
-        
+            """
+                ),
+            ]
+        )
+
         chain = context_prompt | self.model
         next_role = chain.invoke({}).content.strip()
         return next_role if next_role in self.ROLES else list(self.ROLES.keys())[0]
@@ -930,24 +1024,33 @@ class CollaborativeAITeam:
             None, self._get_role_response, role, contribution, thread
         )
 
-    def _assess_contribution_value(self, contribution: str, thread: Discussion) -> float:
+    def _assess_contribution_value(
+        self, contribution: str, thread: Discussion
+    ) -> float:
         """Assess the value of a potential contribution"""
         # Simple metric based on:
         # 1. Uniqueness compared to existing discussion
         # 2. Length and substance of contribution
         # 3. Presence of specific technical terms or concepts
-        
-        existing_content = ' '.join([m['content'] for m in thread.messages])
+
+        existing_content = " ".join([m["content"] for m in thread.messages])
         uniqueness = 1 - self._calculate_similarity(contribution, existing_content)
-        
+
         # More value to substantial but concise contributions
         length_score = min(len(contribution.split()) / 100, 1.0)
-        
+
         # Identify technical terms and concrete suggestions
-        technical_terms = len(re.findall(r'\b(implementation|architecture|system|design|solution)\b', 
-                                   contribution.lower())) / 10
-        
-        return (uniqueness * 0.5 + length_score * 0.3 + technical_terms * 0.2)
+        technical_terms = (
+            len(
+                re.findall(
+                    r"\b(implementation|architecture|system|design|solution)\b",
+                    contribution.lower(),
+                )
+            )
+            / 10
+        )
+
+        return uniqueness * 0.5 + length_score * 0.3 + technical_terms * 0.2
 
     def _calculate_similarity(self, text1: str, text2: str) -> float:
         """Calculate text similarity score"""
@@ -957,10 +1060,12 @@ class CollaborativeAITeam:
         union = words1 | words2
         return len(intersection) / len(union) if union else 0
 
-    def _identify_relevant_roles(self, contribution: str, thread: Discussion) -> List[str]:
+    def _identify_relevant_roles(
+        self, contribution: str, thread: Discussion
+    ) -> List[str]:
         """Identify roles most relevant to the user's contribution"""
         relevance_scores = {}
-        
+
         for role, config in self.ROLES.items():
             score = 0
             # Match keywords from role's expertise
@@ -968,28 +1073,42 @@ class CollaborativeAITeam:
             contribution_words = set(contribution.lower().split())
             keyword_matches = len(expertise_keywords & contribution_words)
             score += keyword_matches * 2
-            
+
             # Consider role's recent activity
             if any(msg["role"] == role for msg in thread.messages[-3:]):
                 score += 1
-                
+
             relevance_scores[role] = score
-        
+
         # Sort roles by relevance score
         return sorted(relevance_scores.items(), key=lambda x: x[1], reverse=True)
 
     def _extract_keywords(self, prompt: str) -> Set[str]:
         """Extract relevant keywords from role prompt"""
         # Simple keyword extraction - could be enhanced with NLP
-        common_words = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for'}
+        common_words = {
+            "the",
+            "a",
+            "an",
+            "and",
+            "or",
+            "but",
+            "in",
+            "on",
+            "at",
+            "to",
+            "for",
+        }
         words = set(prompt.lower().split())
         return words - common_words
 
     def _is_similar_contribution(self, a: str, b: str) -> bool:
         """Use LLM to check if contributions are too similar"""
-        prompt = ChatPromptTemplate.from_messages([
-            SystemMessage(content="You are a Content Similarity Analyzer"),
-            HumanMessage(content=f"""
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                SystemMessage(content="You are a Content Similarity Analyzer"),
+                HumanMessage(
+                    content=f"""
                 Compare these two contributions and determine if they express substantially similar ideas:
                 
                 Contribution 1: {a}
@@ -1002,17 +1121,21 @@ class CollaborativeAITeam:
                 4. Overall message intent
                 
                 Return only 'true' if very similar, 'false' if meaningfully different.
-            """)
-        ])
-        
+            """
+                ),
+            ]
+        )
+
         chain = prompt | self.model
         response = chain.invoke({})
-        return response.content.strip().lower() == 'true'
+        return response.content.strip().lower() == "true"
 
-    def _is_redundant_response(self, new_response: str, existing_responses: List[Dict]) -> bool:
+    def _is_redundant_response(
+        self, new_response: str, existing_responses: List[Dict]
+    ) -> bool:
         """Check if a response is redundant with existing ones"""
         for resp in existing_responses:
-            if self._is_similar_contribution(new_response, resp['content']):
+            if self._is_similar_contribution(new_response, resp["content"]):
                 return True
         return False
 
