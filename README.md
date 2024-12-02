@@ -1,39 +1,41 @@
-# 🚧 AIDevTeam: Collaborative AI-Powered System Design 🤖
+# AI Team Discussion Platform 🤖
 
-**⚠️ WORK IN PROGRESS | EXPERIMENTAL PROJECT ⚠️**
+An innovative platform that simulates a collaborative team of AI experts working together to solve complex technical problems. Each AI team member has a unique personality, expertise, and perspective.
 
-## Overview
+![AI Team Discussion Platform](image.png)
 
-AIDevTeam is an innovative Python-based collaborative problem-solving framework that simulates a multi-role AI team for comprehensive system design and architectural planning. Using graph-based interactions and large language models, the project generates holistic solutions by leveraging diverse AI personas with specialized perspectives.
+## Features 🌟
 
-## 🌟 Key Features
+- Real-time collaborative discussion with specialized AI roles:
 
-- **Multi-Role Collaboration**: Simulates interactions between different technical roles
-- **Graph-Based Interaction Model**: Visualizes collaboration dynamics
-- **Comprehensive Design Generation**: Produces High-Level Design (HLD) and Low-Level Design (LLD)
-- **Logging and Visualization**: Detailed logging and network graph visualization
-- **Flexible Problem-Solving**: Adaptable to various complex system design challenges
+  - Systems Architect
+  - Technical Product Manager
+  - Database Engineer
+  - Staff Software Engineer
+  - Principal Engineer
+  - Security Engineer
+  - Performance Engineer
+  - 100x Intern
+  - Unconventional Innovator
 
-## 🧑‍💻 Roles in the AI Team
+- Dynamic response generation based on conversation context
+- Interactive WebSocket-based communication
+- Export discussions to PDF
+- Beautiful dark mode UI with animations
+- Role-specific expertise and personality traits
+- Consensus-driven problem solving
 
-1. **Systems Architect**: Coordinates team efforts and ensures architectural coherence
-2. **Technical Product Manager**: Bridges business requirements and technical solutions
-3. **Security Engineer**: Provides security threat modeling and recommendations
-4. **Performance Engineer**: Focuses on optimization and performance insights
-5. **Unconventional Innovator**: Challenges assumptions and stimulates creative thinking
+## Tech Stack 💻
 
-## 🛠 Prerequisites
+- **Backend**: FastAPI, WebSockets, asyncio
+- **AI/ML**: LangChain, Ollama
+- **Frontend**: HTML, TailwindCSS, JavaScript
+- **Models**: Llama 3.1 (8B parameters)
 
-- Python 3.8+
-- Dependencies:
-  - langchain
-  - termcolor
-  - ollama (for language model)
-
-## 🚀 Quick Start
+## Setup 🚀
 
 ```bash
-# Clone the repository
+# Clone the repository:
 git clone https://github.com/AjinkyaTaranekar/AiDevTeam.git
 cd AiDevTeam
 
@@ -44,16 +46,13 @@ pip install -r requirements.txt
 python main.py
 ```
 
-## 📋 Usage Example
+## 📋 Usage
 
-```python
-team = CollaborativeAITeam()
-problem_statement = """
-Design a scalable, secure configuration management system
-that supports feature flagging for applications with over a million users
-"""
-team.collaborative_problem_solving(problem_statement)
-```
+1. Enter your problem statement or design challenge in the input field
+2. Click "Start Discussion" to begin the AI team collaboration
+3. Watch as different AI roles contribute their expertise
+4. Add your own insights using the side panel
+5. Export the final discussion and documentation as PDF
 
 ## 🔍 How It Works
 

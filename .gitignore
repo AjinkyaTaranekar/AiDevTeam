@@ -52,11 +52,6 @@ secrets.py
 *.ollama
 models/
 
-# Matplotlib and Visualization Caches
-*.pdf
-*.png
-*.jpg
-
 # Temporary files
 *.tmp
 *.bak
