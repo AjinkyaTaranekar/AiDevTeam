@@ -85,8 +85,56 @@
             50% { opacity: 0.8; }
         }
 
-        .list-fixer > :global(ul) {
+        .list-fixer > ul {
             list-style-type: disc;
+            margin: 6px;
+            padding-left: 20px;
+        }
+
+        .list-fixer > ol {
+            list-style-type: decimal;
+            margin: 6px;
+            padding-left: 20px;
+        }
+
+        .list-fixer > ul > li {
+            margin: 6px;
+        }
+
+        .list-fixer > ol > li {
+            margin: 6px;
+        }
+
+        .list-fixer > ul > li > ul {
+            list-style-type: circle;
+            margin: 6px;
+            padding-left: 20px;
+        }
+
+        .list-fixer > ul > li > ol {
+            list-style-type: decimal;
+            margin: 6px;
+            padding-left: 20px;
+        }
+
+        .list-fixer > ol > li > ul {
+            list-style-type: circle;
+            margin: 6px;
+            padding-left: 20px;
+        }
+
+        .list-fixer > ol > li > ol {
+            list-style-type: decimal;
+            margin: 6px;
+            padding-left: 20px;
+        }
+
+        .list-fixer > ul > li > ul > li {
+            margin: 6px;
+        }
+
+        .list-fixer > ul > li > ol > li {
+            margin: 6px;
         }
 
         .footer-gradient {
@@ -346,18 +394,39 @@
         document.getElementById('export-pdf').addEventListener('click', function() {
             // Create a clone of messages div for PDF
             const pdfContent = document.createElement('div');
-            pdfContent.innerHTML = messagesDiv.innerHTML;
+            pdfContent.innerHTML = `
+            <h1 style="text-align: center; color: #3b82f6; font-size: 24px; font-weight: bold; margin-bottom: 20px;">
+            AI Team Discussion
+            </h1>` + messagesDiv.innerHTML;
             
             // Add some styling for PDF
-            pdfContent.classList.add('bg-black', 'p-8');
+            pdfContent.classList.add('p-4');
+            
+            // Force text color to black for PDF
+            const allElements = pdfContent.getElementsByTagName('*');
+            for(let element of allElements) {
+            element.style.color = '#000000';
+            }
+            pdfContent.style.color = '#000000';
+            pdfContent.style.backgroundColor = '#ffffff';
             
             // Configure PDF options
             const opt = {
-                margin: 1,
-                filename: 'ai-team-discussion.pdf',
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2 },
-                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+            margin: 1,
+            filename: 'ai-team-discussion.pdf',
+            html2canvas: { 
+                scale: 4,
+                useCORS: true,
+                logging: true,
+                letterRendering: true
+            },
+            jsPDF: { 
+                unit: 'in', 
+                format: 'a4',
+                orientation: 'portrait',
+                putOnlyUsedFonts: true,
+                floatPrecision: 16
+            }
             };
 
             // Generate PDF
