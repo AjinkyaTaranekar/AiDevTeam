@@ -1,17 +1,19 @@
 # Core Python Requirements
-termcolor>=2.3.0
+termcolor==2.3.0
 
 # Language Model and Langchain Dependencies
 langchain-core>=0.1.0
 langchain-community>=0.0.20
 ollama>=0.1.5
-langchain
+langchain==0.0.335
 
 # Optional but Recommended
 typing>=3.7.4
 
 # Additional Dependencies
-fastapi
-uvicorn
-websockets
-networkx
+fastapi==0.104.1
+uvicorn==0.24.0
+websockets==12.0
+networkx==3.2.1
+python-dotenv==1.0.0
+async-timeout==4.0.3
